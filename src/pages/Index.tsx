@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,16 +6,97 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [serverStatus, setServerStatus] = useState<'online' | 'offline' | 'starting' | 'stopping'>('online');
+  
+  const [cpuUsage, setCpuUsage] = useState(45);
+  const [memoryUsage, setMemoryUsage] = useState(62);
+  const [diskUsage] = useState(78);
+
+  const [consoleLines, setConsoleLines] = useState([
+    '[00:14:22.080] [Server thread/INFO]: Starting Minecraft server version 1.20.1',
+    '[00:14:22.082] [Server thread/INFO]: Loading properties',
+    '[00:14:22.089] [Server thread/INFO]: Default game type: SURVIVAL',
+    '[00:14:22.089] [Server thread/INFO]: Generating keypair',
+    '[00:14:22.490] [Server thread/INFO]: Starting Minecraft server on *:25565',
+    '[00:14:22.491] [Server thread/INFO]: Using default channel type',
+    '[00:14:23.178] [Server thread/INFO]: Preparing level "world"',
+    '[00:14:25.891] [Server thread/INFO]: Preparing start region for dimension minecraft:overworld',
+    '[00:14:26.392] [Server thread/INFO]: Time elapsed: 501 ms',
+    '[00:14:26.393] [Server thread/INFO]: Done (4.202s)! For help, type "help"',
+  ]);
+
+  const [files] = useState([
+    { name: 'server.properties', size: '2.4 KB', type: 'file', modified: '2024-12-18 14:32' },
+    { name: 'world', size: '450 MB', type: 'folder', modified: '2024-12-18 15:20' },
+    { name: 'plugins', size: '125 MB', type: 'folder', modified: '2024-12-18 10:15' },
+    { name: 'logs', size: '15.6 MB', type: 'folder', modified: '2024-12-18 15:45' },
+    { name: 'eula.txt', size: '156 B', type: 'file', modified: '2024-12-10 08:00' },
+  ]);
+
+  useEffect(() => {
+    if (serverStatus === 'online') {
+      const interval = setInterval(() => {
+        setCpuUsage(prev => Math.min(100, Math.max(10, prev + (Math.random() - 0.5) * 10)));
+        setMemoryUsage(prev => Math.min(100, Math.max(20, prev + (Math.random() - 0.5) * 5)));
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [serverStatus]);
+
+  const handleStartServer = () => {
+    setServerStatus('starting');
+    toast.info('Запуск сервера...');
+    setTimeout(() => {
+      setServerStatus('online');
+      toast.success('Сервер успешно запущен!');
+      setConsoleLines(prev => [...prev, '[' + new Date().toLocaleTimeString() + '] Server started successfully']);
+    }, 3000);
+  };
+
+  const handleStopServer = () => {
+    setServerStatus('stopping');
+    toast.info('Остановка сервера...');
+    setTimeout(() => {
+      setServerStatus('offline');
+      toast.success('Сервер остановлен');
+      setConsoleLines(prev => [...prev, '[' + new Date().toLocaleTimeString() + '] Server stopped']);
+    }, 2000);
+  };
+
+  const handleRestartServer = () => {
+    setServerStatus('stopping');
+    toast.info('Перезагрузка сервера...');
+    setTimeout(() => {
+      setServerStatus('starting');
+      setTimeout(() => {
+        setServerStatus('online');
+        toast.success('Сервер перезагружен!');
+        setConsoleLines(prev => [...prev, '[' + new Date().toLocaleTimeString() + '] Server restarted']);
+      }, 3000);
+    }, 2000);
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success('Регистрация успешна! Проверьте почту для активации аккаунта.');
+    setShowRegisterModal(false);
+    setTimeout(() => {
+      setActiveSection('dashboard');
+    }, 1000);
+  };
 
   const servers = [
-    { id: 'srv-1', name: 'Production Server', status: 'online', cpu: 45, memory: 62, disk: 78 },
-    { id: 'srv-2', name: 'Dev Server', status: 'online', cpu: 23, memory: 41, disk: 34 },
-    { id: 'srv-3', name: 'Test Server', status: 'maintenance', cpu: 0, memory: 0, disk: 56 },
+    { id: 'srv-1', name: 'BisqVelocity', status: serverStatus, cpu: cpuUsage, memory: memoryUsage, disk: diskUsage, ip: 'bisqvit.mcdev.pol' },
   ];
 
   return (
@@ -88,11 +169,15 @@ const Index = () => {
                   Разверните свой проект за минуты. SSD-диски, защита от DDoS и техподдержка 24/7
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8">
+                  <Button 
+                    size="lg" 
+                    className="bg-primary hover:bg-primary/90 text-lg px-8"
+                    onClick={() => setShowRegisterModal(true)}
+                  >
                     Начать бесплатно
                     <Icon name="ArrowRight" size={20} className="ml-2" />
                   </Button>
-                  <Button size="lg" variant="outline" className="text-lg px-8">
+                  <Button size="lg" variant="outline" className="text-lg px-8" onClick={() => setActiveSection('dashboard')}>
                     Смотреть демо
                   </Button>
                 </div>
@@ -398,122 +483,288 @@ const Index = () => {
 
       {activeSection === 'dashboard' && (
         <section className="py-20 container mx-auto px-6">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h2 className="text-4xl font-bold mb-2">Панель управления</h2>
               <p className="text-muted-foreground">Управляйте вашими серверами и услугами</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Активные серверы</CardTitle>
-                  <Icon name="Server" size={16} className="text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">3</div>
-                  <p className="text-xs text-muted-foreground mt-1">2 online, 1 обслуживание</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Использовано трафика</CardTitle>
-                  <Icon name="Activity" size={16} className="text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">2.4 ТБ</div>
-                  <p className="text-xs text-muted-foreground mt-1">из 5 ТБ</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Следующий платёж</CardTitle>
-                  <Icon name="Calendar" size={16} className="text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">15 дек</div>
-                  <p className="text-xs text-muted-foreground mt-1">1290 ₽</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Ваши серверы</CardTitle>
-                <CardDescription>Нажмите на сервер для просмотра деталей</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {servers.map((server) => (
-                  <div
-                    key={server.id}
-                    onClick={() => setSelectedServer(selectedServer === server.id ? null : server.id)}
-                    className="p-4 border-2 rounded-lg cursor-pointer hover:border-primary/50 transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <Icon name="Server" size={20} className="text-primary" />
+            <div className="space-y-6">
+              {servers.map((server) => (
+                <Card key={server.id} className="overflow-hidden">
+                  <CardHeader className="bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <Icon name="Server" size={24} className="text-primary" />
                         </div>
                         <div>
-                          <h4 className="font-semibold">{server.name}</h4>
-                          <p className="text-sm text-muted-foreground">{server.id}</p>
+                          <CardTitle className="text-xl">{server.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                            <Icon name="Globe" size={14} />
+                            {server.ip}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant={server.status === 'online' ? 'default' : 'secondary'} className={server.status === 'online' ? 'bg-green-500' : ''}>
-                        {server.status === 'online' ? 'Онлайн' : 'Обслуживание'}
+                      <Badge 
+                        variant={server.status === 'online' ? 'default' : 'secondary'} 
+                        className={
+                          server.status === 'online' ? 'bg-green-500' : 
+                          server.status === 'starting' ? 'bg-yellow-500' :
+                          server.status === 'stopping' ? 'bg-orange-500' : 'bg-red-500'
+                        }
+                      >
+                        {server.status === 'online' ? 'Онлайн' : 
+                         server.status === 'starting' ? 'Запуск...' :
+                         server.status === 'stopping' ? 'Остановка...' : 'Оффлайн'}
                       </Badge>
                     </div>
+                  </CardHeader>
 
-                    {selectedServer === server.id && server.status === 'online' && (
-                      <div className="mt-4 pt-4 border-t space-y-4 animate-accordion-down">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">CPU</span>
-                            <span className="font-medium">{server.cpu}%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${server.cpu}%` }} />
-                          </div>
-                        </div>
+                  <CardContent className="p-6">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                      <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="overview">Обзор</TabsTrigger>
+                        <TabsTrigger value="console">Консоль</TabsTrigger>
+                        <TabsTrigger value="files">Файлы</TabsTrigger>
+                        <TabsTrigger value="monitoring">Мониторинг</TabsTrigger>
+                      </TabsList>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Память</span>
-                            <span className="font-medium">{server.memory}%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${server.memory}%` }} />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Диск</span>
-                            <span className="font-medium">{server.disk}%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-secondary h-2 rounded-full transition-all" style={{ width: `${server.disk}%` }} />
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-2">
-                          <Button size="sm" variant="outline" className="flex-1">
-                            <Icon name="Power" size={16} className="mr-2" />
-                            Перезагрузить
+                      <TabsContent value="overview" className="space-y-6">
+                        <div className="flex gap-3">
+                          <Button 
+                            onClick={handleStartServer} 
+                            disabled={server.status === 'online' || server.status === 'starting'}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Icon name="Play" size={16} className="mr-2" />
+                            Старт
                           </Button>
-                          <Button size="sm" variant="outline" className="flex-1">
-                            <Icon name="Settings" size={16} className="mr-2" />
-                            Настройки
+                          <Button 
+                            onClick={handleStopServer}
+                            disabled={server.status === 'offline' || server.status === 'stopping'}
+                            variant="destructive"
+                          >
+                            <Icon name="Square" size={16} className="mr-2" />
+                            Стоп
+                          </Button>
+                          <Button 
+                            onClick={handleRestartServer}
+                            disabled={server.status !== 'online'}
+                            variant="outline"
+                          >
+                            <Icon name="RotateCw" size={16} className="mr-2" />
+                            Перезагрузка
                           </Button>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-sm font-medium flex items-center justify-between">
+                                Использование ЦП
+                                <Icon name="Cpu" size={16} className="text-muted-foreground" />
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold">{cpuUsage.toFixed(1)}%</div>
+                              <div className="w-full bg-muted rounded-full h-2 mt-2">
+                                <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${cpuUsage}%` }} />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-sm font-medium flex items-center justify-between">
+                                Память
+                                <Icon name="Database" size={16} className="text-muted-foreground" />
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold">{memoryUsage.toFixed(1)}%</div>
+                              <div className="w-full bg-muted rounded-full h-2 mt-2">
+                                <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${memoryUsage}%` }} />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-sm font-medium flex items-center justify-between">
+                                Диск
+                                <Icon name="HardDrive" size={16} className="text-muted-foreground" />
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold">{diskUsage}%</div>
+                              <div className="w-full bg-muted rounded-full h-2 mt-2">
+                                <div className="bg-secondary h-2 rounded-full transition-all" style={{ width: `${diskUsage}%` }} />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="console">
+                        <Card className="bg-black/95 border-gray-800">
+                          <CardHeader className="border-b border-gray-800 flex flex-row items-center justify-between pb-3">
+                            <CardTitle className="text-green-400 text-sm font-mono">Консоль</CardTitle>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="ghost" className="h-7 text-gray-400 hover:text-white">
+                                <Icon name="Copy" size={14} />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-gray-400 hover:text-white">
+                                <Icon name="Maximize2" size={14} />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            <ScrollArea className="h-[400px] p-4">
+                              <div className="space-y-1 font-mono text-xs">
+                                {consoleLines.map((line, i) => (
+                                  <div key={i} className="text-gray-300">
+                                    {line}
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                            <div className="border-t border-gray-800 p-3 flex gap-2">
+                              <Input 
+                                placeholder="Введите команду..." 
+                                className="bg-black/50 border-gray-700 text-white font-mono text-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && e.currentTarget.value) {
+                                    setConsoleLines(prev => [...prev, '> ' + e.currentTarget.value]);
+                                    e.currentTarget.value = '';
+                                  }
+                                }}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+
+                      <TabsContent value="files">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                              <span>Файловый менеджер</span>
+                              <Button size="sm" variant="outline">
+                                <Icon name="Upload" size={16} className="mr-2" />
+                                Загрузить
+                              </Button>
+                            </CardTitle>
+                            <CardDescription>Управление файлами сервера</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {files.map((file, i) => (
+                                <div 
+                                  key={i} 
+                                  className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors border"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                      <Icon 
+                                        name={file.type === 'folder' ? 'Folder' : 'FileText'} 
+                                        size={20} 
+                                        className="text-primary" 
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{file.name}</p>
+                                      <p className="text-xs text-muted-foreground">{file.size} • {file.modified}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button size="sm" variant="ghost">
+                                      <Icon name="Download" size={16} />
+                                    </Button>
+                                    <Button size="sm" variant="ghost">
+                                      <Icon name="MoreVertical" size={16} />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+
+                      <TabsContent value="monitoring">
+                        <div className="grid gap-6">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Мониторинг в реальном времени</CardTitle>
+                              <CardDescription>Метрики производительности сервера</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium">Процессор</span>
+                                  <span className="text-sm text-muted-foreground">{cpuUsage.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-3">
+                                  <div 
+                                    className="bg-gradient-to-r from-primary to-orange-500 h-3 rounded-full transition-all duration-500" 
+                                    style={{ width: `${cpuUsage}%` }} 
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium">Оперативная память</span>
+                                  <span className="text-sm text-muted-foreground">{memoryUsage.toFixed(1)}% • 706.43 МБ / 2 ГБ</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-3">
+                                  <div 
+                                    className="bg-gradient-to-r from-orange-500 to-red-500 h-3 rounded-full transition-all duration-500" 
+                                    style={{ width: `${memoryUsage}%` }} 
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium">Дисковое пространство</span>
+                                  <span className="text-sm text-muted-foreground">{diskUsage}% • 174.17 МБ / 2 ГБ</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-3">
+                                  <div 
+                                    className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all" 
+                                    style={{ width: `${diskUsage}%` }} 
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="pt-4 border-t">
+                                <h4 className="font-semibold mb-3">Подключение</h4>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">IP адрес:</span>
+                                    <span className="font-mono">{server.ip}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Порт:</span>
+                                    <span className="font-mono">25565</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Время работы:</span>
+                                    <span>5 час. 34 мин.</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -576,6 +827,34 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      <Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Регистрация</DialogTitle>
+            <DialogDescription>
+              Создайте аккаунт и получите 7 дней бесплатного тестирования
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Имя</label>
+              <Input placeholder="Ваше имя" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input type="email" placeholder="email@example.com" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Пароль</label>
+              <Input type="password" placeholder="••••••••" required />
+            </div>
+            <Button type="submit" className="w-full bg-primary">
+              Зарегистрироваться
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
