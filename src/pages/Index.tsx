@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -614,8 +616,14 @@ const Index = () => {
                               <Button size="sm" variant="ghost" className="h-7 text-gray-400 hover:text-white">
                                 <Icon name="Copy" size={14} />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-7 text-gray-400 hover:text-white">
-                                <Icon name="Maximize2" size={14} />
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-7 text-gray-400 hover:text-white"
+                                onClick={() => navigate('/console')}
+                              >
+                                <Icon name="Maximize2" size={14} className="mr-2" />
+                                Полный экран
                               </Button>
                             </div>
                           </CardHeader>
